@@ -1,4 +1,6 @@
 #include <IRremote.h>
+#include <LiquidCrystal_I2C.h>
+LiquidCrystal_I2C lcd(0x20,16,2);
 
 int ledPin=13;         //LED灯的引脚为13
 int RECV_PIN=10;      //红外接受模块引脚为10
@@ -23,10 +25,15 @@ int voicedetect();
 int lightdetect();
 int looptempturedetect();
 
+//显示模式状态
+void modeDisplay();
+
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
   irrecv.enableIRIn();
+  lcd.init();
+  lcd.backlight();
   pinMode(ledPin,OUTPUT);         //设置LED为输出状态
   pinMode(buttonPin,INPUT);        //button输入
 }
@@ -34,33 +41,33 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
   if(irrecv.decode(&results)){
-    Serial.println(results.value,HEX);
+//    Serial.println(results.value,HEX);
     if(results.value==0xFD00FF){       //如果接受到的是电源键的信号，常亮模式反转,所有函数开闭状态随灯反转
       digitalWrite(ledPin, LOW);
       alwaysMode = !alwaysMode;
-      Serial.print("alwaysMode: ");
-      Serial.println(alwaysMode);
+//      Serial.print("alwaysMode: ");
+//      Serial.println(alwaysMode);
+    
     }else if(results.value==0xFD08F7){       //如果接受到的是按键1的信号，开闭声感应模式
       voiceState = false;
       funcOn[0] = !funcOn[0];
-      Serial.print("voicedetect: ");
-      Serial.println(funcOn[0]);
+//      Serial.print("voicedetect: ");
+//      Serial.println(funcOn[0]);
     }else if(results.value==0xFD8877){       //如果接受到的是按键2的信号，开闭光感应模式
       lightState = false;
       funcOn[1] = !funcOn[1];
-      Serial.print("lightdetect: ");
-      Serial.println(funcOn[1]);
+//      Serial.print("lightdetect: ");
+//      Serial.println(funcOn[1]);
     }else if(results.value==0xFD48B7){       //如果接受到的是按键3的信号，开闭红外感应模式
       warmState = false;
       funcOn[2] = !funcOn[2];
-      Serial.print("looptempturedetect: ");
-      Serial.println(funcOn[2]);
+//      Serial.print("looptempturedetect: ");
+//      Serial.println(funcOn[2]);
     }
     irrecv.resume();
-  }else{
-    
   }
-   if(alwaysMode){                         //如果常亮模式开启，关闭其他函数，打开led
+  modeDisplay();
+  if(alwaysMode){                         //如果常亮模式开启，关闭其他函数，打开led
     digitalWrite(ledPin, HIGH);
   }else{
     if(funcOn[0]){
@@ -97,9 +104,9 @@ void loop() {
 int lightdetect()
 {
   if(analogRead(lightPin) > 10){             //当光敏传感器传入模拟信号大于10
-    return 1;                               //即有光时，返回1，否则返回0
+    return 0;                               //即有光时，返回0，否则返回1
   }else{
-    return 0;
+    return 1;
   }
 }
 
@@ -120,4 +127,35 @@ int voicedetect() {
     return 1;    //如果声音大于三十（可修改），灯亮              
   }
   return 0;
+}
+
+void modeDisplay(){
+      lcd.setCursor(1,0);
+      lcd.print("A: ");
+      if(alwaysMode){
+        lcd.print("On ");
+      }else{
+        lcd.print("Off");
+      }
+      lcd.setCursor(8,0);
+      lcd.print("V: ");
+      if(funcOn[0]){
+        lcd.print("On ");
+      }else{
+        lcd.print("Off");
+      }
+      lcd.setCursor(1,1);
+      lcd.print("L: ");
+      if(funcOn[1]){
+        lcd.print("On ");
+      }else{
+        lcd.print("Off");
+      }
+      lcd.setCursor(8,1);
+      lcd.print("I: ");
+      if(funcOn[2]){
+        lcd.print("On ");
+      }else{
+        lcd.print("Off");
+      }
 }
